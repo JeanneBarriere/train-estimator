@@ -3,6 +3,7 @@ import { DiscountCard, Passenger, TripRequest } from "./model/trip.request";
 import { TripTicket } from "./trip-ticket";
 import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
+import { Markup } from "./markup";
 
 export class TrainTicketEstimator {
   // Note : Dans le code de base TrainStroke est bien cumulable avec la carte halfCouple, cf le dernier test de la classe TrainTicketEstimatorTest
@@ -111,16 +112,11 @@ export class TrainTicketEstimator {
 
   // TODO: refacto 
   calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
-    // if (passenger.isMinor()) {
-    //   tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
-    // } else if (passenger.isSenior()) {
       tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
+      tripTicket.addMarkup(Markup.getMarkupByAge(passenger));
       if (passenger.hasDiscount(DiscountCard.Senior) && passenger.isSenior()) {
         tripTicket.addDiscount(Discount.getDiscountByCard(DiscountCard.Senior));
       }
-    // } else {
-    //   tripTicket.addMarkup(0.2);
-    // }
   }
 
   // TODO: refacto 

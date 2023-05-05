@@ -21,7 +21,7 @@ export class Discount {
     } else if (passenger.isSenior()) {
       return 0.2;
     } else {
-      return -0.2;
+      return 0;
     }
   }
   
