@@ -49,7 +49,7 @@ export class TrainTicketEstimator {
         throw new InvalidTripInputException("Age is invalid");
       }
       if (pasngers[i].age < 1) {
-        tmp = 0;
+          continue;
       }
       // Seniors
       else if (pasngers[i].age <= 17) {
@@ -65,6 +65,7 @@ export class TrainTicketEstimator {
 
       const d = new Date();
       if (trainDetails.details.when.getTime() >= d.setDate(d.getDate() + 30)) {
+        // on retire les 20% de la reduc quand on achete le billet tardivement
         tmp -= b * 0.2;
       } else if (
         trainDetails.details.when.getTime() > d.setDate(d.getDate() - 30 + 5)
