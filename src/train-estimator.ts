@@ -2,15 +2,72 @@ import {
   ApiException,
   DiscountCard,
   InvalidTripInputException,
+  Passenger,
   TripRequest,
 } from "./model/trip.request";
 
 export class TrainTicketEstimator {
+  getToday() {
+    return new Date();
+  }
+
+  getDateInFutur(days: number): Date {
+    const date = new Date(
+      this.getToday().setDate(this.getToday().getDate() + days)
+    );
+    return date;
+  }
+
   async estimate(trainDetails: TripRequest): Promise<number> {
-    if (trainDetails.passengers.length === 0) {
+    const passengers = trainDetails.passengers;
+    if (passengers.length === 0) {
       return 0;
     }
 
+    this.inputValidate(trainDetails);
+
+    // TODO USE THIS LINE AT THE END
+    const apiPrice = await this.fetchPrice(trainDetails);
+
+    if (apiPrice === -1) {
+      throw new ApiException();
+    }
+
+    let total = 0;
+
+    for (const passenger of passengers) {
+      total += this.calculPricePassenger(passenger, apiPrice, trainDetails);
+    }
+
+    if (passengers.length == 2) {
+      let hasDiscount = false;
+      let minor = false;
+      for (let i = 0; i < passengers.length; i++) {
+        if (passengers[i].hasDiscount(DiscountCard.Couple)) {
+          hasDiscount = true;
+        }
+        if (passengers[i].isMinor()) {
+          minor = true;
+        }
+      }
+      if (hasDiscount && !minor) {
+        total -= apiPrice * 0.2 * 2;
+      }
+    }
+
+    if (passengers.length == 1) {
+      if (
+        passengers[0].hasDiscount(DiscountCard.HalfCouple) &&
+        !passengers[0].isMinor()
+      ) {
+        total -= apiPrice * 0.1;
+      }
+    }
+
+    return total;
+  }
+
+  private inputValidate(trainDetails: TripRequest) {
     if (trainDetails.details.from.trim().length === 0) {
       throw new InvalidTripInputException("Start city is invalid");
     }
@@ -20,7 +77,7 @@ export class TrainTicketEstimator {
     }
 
     if (
-      trainDetails.details.when <
+      trainDetails.getDeparture() <
       new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -32,109 +89,76 @@ export class TrainTicketEstimator {
     ) {
       throw new InvalidTripInputException("Date is invalid");
     }
-
-    // TODO USE THIS LINE AT THE END
-    const b =
-      await this.fetchApi(trainDetails);
-
-    if (b === -1) {
-      throw new ApiException();
-    }
-
-    const pasngers = trainDetails.passengers;
-    let tot = 0;
-    let tmp = b;
-    for (let i = 0; i < pasngers.length; i++) {
-      if (pasngers[i].age < 0) {
-        throw new InvalidTripInputException("Age is invalid");
-      }
-      if (pasngers[i].age < 1) {
-          continue;
-      }
-      // Seniors
-      else if (pasngers[i].age <= 17) {
-        tmp = b * 0.6;
-      } else if (pasngers[i].age >= 70) {
-        tmp = b * 0.8;
-        if (pasngers[i].discounts.includes(DiscountCard.Senior)) {
-          tmp -= b * 0.2;
-        }
-      } else {
-        tmp = b * 1.2;
-      }
-
-      const d = new Date();
-      if (trainDetails.details.when.getTime() >= d.setDate(d.getDate() + 30)) {
-        // on retire les 20% de la reduc quand on achete le billet tardivement
-        tmp -= b * 0.2;
-      } else if (
-        trainDetails.details.when.getTime() > d.setDate(d.getDate() - 30 + 5)
-      ) {
-        const date1 = trainDetails.details.when;
-        const date2 = new Date();
-        //https://stackoverflow.com/questions/43735678/typescript-get-difference-between-two-dates-in-days
-        var diff = Math.abs(date1.getTime() - date2.getTime());
-        var diffDays = Math.ceil(diff / (1000 * 3600 * 24));
-
-        tmp += (20 - diffDays) * 0.02 * b; // I tried. it works. I don't know why.
-      } else {
-        tmp += b;
-      }
-
-      if (pasngers[i].age > 0 && pasngers[i].age < 4) {
-        tmp = 9;
-      }
-
-      if (pasngers[i].discounts.includes(DiscountCard.TrainStroke)) {
-        tmp = 1;
-      }
-
-      tot += tmp;
-      tmp = b;
-    }
-
-    if (pasngers.length == 2) {
-      let cp = false;
-      let mn = false;
-      for (let i = 0; i < pasngers.length; i++) {
-        if (pasngers[i].discounts.includes(DiscountCard.Couple)) {
-          cp = true;
-        }
-        if (pasngers[i].age < 18) {
-          mn = true;
-        }
-      }
-      if (cp && !mn) {
-        tot -= b * 0.2 * 2;
-      }
-    }
-
-    if (pasngers.length == 1) {
-      let cp = false;
-      let mn = false;
-      for (let i = 0; i < pasngers.length; i++) {
-        if (pasngers[i].discounts.includes(DiscountCard.HalfCouple)) {
-          cp = true;
-        }
-        if (pasngers[i].age < 18) {
-          mn = true;
-        }
-      }
-      if (cp && !mn) {
-        tot -= b * 0.1;
-      }
-    }
-
-    return tot;
   }
 
-    protected async fetchApi(trainDetails: TripRequest) {
-        return (
-            await (
-                await fetch(
-                    `https://sncf.com/api/train/estimate/price?from=${trainDetails.details.from}&to=${trainDetails.details.to}&date=${trainDetails.details.when}`
-                )
-            ).json()
-        )?.price || -1;
+  protected async fetchPrice(trainDetails: TripRequest) {
+    return (
+      (
+        await (
+          await fetch(
+            `https://sncf.com/api/train/estimate/price?from=${trainDetails.details.from}&to=${trainDetails.details.to}&date=${trainDetails.details.when}`
+          )
+        ).json()
+      )?.price || -1
+    );
+  }
+
+  dateDiffInDays(date1: Date) {
+    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const diffTime: number = Math.abs(
+      date1.getTime() - this.getToday().getTime()
+    );
+    const diffDays: number = Math.ceil(diffTime / _MS_PER_DAY);
+
+    return diffDays;
+  }
+  calculPricePassenger(
+    passenger: Passenger,
+    apiPrice: number,
+    trainDetails: TripRequest
+  ): number {
+    if (passenger.age < 0) {
+      throw new InvalidTripInputException("Age is invalid");
     }
+    if (passenger.age < 1) {
+      return 0;
+    }
+    if (passenger.hasDiscount(DiscountCard.TrainStroke)) {
+      return 1;
+    }
+    if (passenger.age < 4) {
+      return 9;
+    }
+
+    let reduction = 0;
+    
+    let tmpPrice = 0;
+
+    if (passenger.age <= 17) {
+      tmpPrice = apiPrice * 0.6;
+
+      // Seniors
+    } else if (passenger.age >= 70) {
+      tmpPrice = apiPrice * 0.8;
+      if (passenger.hasDiscount(DiscountCard.Senior)) {
+        tmpPrice -= apiPrice * 0.2;
+      }
+    } else {
+      tmpPrice = apiPrice * 1.2;
+    }
+
+    
+
+    if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
+      // on retire les 20% de la reduc quand on achete le billet tardivement
+      tmpPrice -= apiPrice * 0.2;
+    } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
+      const diffDays = this.dateDiffInDays(trainDetails.getDeparture());
+      tmpPrice += (20 - diffDays) * 0.02 * apiPrice; // I tried. it works. I don't know why.
+    } else {
+      tmpPrice += apiPrice;
+    }
+
+    return tmpPrice;
+  }
 }

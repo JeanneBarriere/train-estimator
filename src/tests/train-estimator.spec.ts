@@ -21,7 +21,7 @@ describe("train estimator", function () {
   class TrainTicketEstimatorOverloads extends TrainTicketEstimator {
     result = 0;
 
-    public async fetchApi(trainDetails: TripRequest): Promise<number> {
+    public async fetchPrice(trainDetails: TripRequest): Promise<number> {
       return this.result;
     }
 
