@@ -5,8 +5,6 @@ import { InvalidTripInputException } from "./exceptions/InvalidTripInputExceptio
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 
 export class TrainTicketEstimator {
-
-
   // Note : Dans le code de base TrainStroke est bien cumulable avec la carte halfCouple, cf le dernier test de la classe TrainTicketEstimatorTest
   // nous avons n'avons pas modifier ce fonctionnement
   async estimate(trainDetails: TripRequest): Promise<number> {
@@ -24,9 +22,7 @@ export class TrainTicketEstimator {
         continue;
       }
 
-      tripTicket.addDiscounts(
-        this.calculAdjustmentPrice(passenger, trainDetails)
-      );
+      this.calculAdjustmentPrice(passenger, trainDetails, tripTicket);
     }
 
     if (trainDetails.numberOfPassengers() < 3) {
@@ -83,7 +79,7 @@ export class TrainTicketEstimator {
       : DiscountCard.Couple;
 
     if (trainDetails.cantApplyDiscountForCoupleCards(discountCard)) return;
-    tripTicket.addDiscount(-DiscountByCard.getDiscount(discountCard));
+    tripTicket.addDiscount(DiscountByCard.getDiscount(discountCard));
   }
 
   private getFixPrice(passenger: Passenger) {
@@ -105,32 +101,29 @@ export class TrainTicketEstimator {
   // TODO: refacto and split this method in two
   private calculAdjustmentPrice(
     passenger: Passenger,
-    trainDetails: TripRequest
-  ): number[] {
-    const reductions = [];
-
+    trainDetails: TripRequest,
+    tripTicket: TripTicket
+  ): void {
     if (passenger.age <= 17) {
-      reductions.push(-0.4);
-
-      // Seniors
+      tripTicket.addDiscount(0.4);
     } else if (passenger.age >= 70) {
-      reductions.push(-0.2);
+      tripTicket.addDiscount(0.2);
       if (passenger.hasDiscount(DiscountCard.Senior)) {
-        reductions.push(-0.2);
+        tripTicket.addDiscount(0.2);
       }
     } else {
-      reductions.push(0.2);
+      tripTicket.addMarkup(0.2);
     }
 
     if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
-      reductions.push(-0.2);
+      tripTicket.addDiscount(0.2);
     } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
       const diffDays = this.dateDiffInDays(trainDetails.getDeparture());
-      reductions.push((20 - diffDays) * 0.02); // I tried. it works. I don't know why.
+      tripTicket.addMarkup((20 - diffDays) * 0.02); // I tried. it works. I don't know why.
     } else {
-      reductions.push(1);
+      tripTicket.addMarkup(1);
     }
-    return reductions;
+    tripTicket.addPassengerWithAdjustments();
   }
 
   protected async fetchPrice(trainDetails: TripRequest) {
