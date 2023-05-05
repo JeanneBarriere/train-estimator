@@ -4,6 +4,7 @@ import { TripTicket } from "./trip-ticket";
 import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 import { Markup } from "./markup";
+import { DateUtils } from "./date-utils";
 
 export class TrainTicketEstimator {
   // Note : Dans le code de base TrainStroke est bien cumulable avec la carte halfCouple, cf le dernier test de la classe TrainTicketEstimatorTest
@@ -36,7 +37,7 @@ export class TrainTicketEstimator {
 
   // TODO: refacto extract all methods with date logic
   getToday() {
-    return new Date();
+    return DateUtils.getToday();
   }
 
   getDateInFutur(days: number): Date {
@@ -46,15 +47,7 @@ export class TrainTicketEstimator {
     return date;
   }
 
-  dateDiffInDays(date1: Date) {
-    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const diffTime: number = Math.abs(
-      date1.getTime() - this.getToday().getTime()
-    );
-    const diffDays: number = Math.ceil(diffTime / _MS_PER_DAY);
 
-    return diffDays;
-  }
 
   private validateInputs(trainDetails: TripRequest) {
     if (trainDetails.details.from.trim().length === 0) {
@@ -110,7 +103,6 @@ export class TrainTicketEstimator {
     tripTicket.addPassengerWithAdjustments();
   }
 
-  // TODO: refacto 
   calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
       tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
       tripTicket.addMarkup(Markup.getMarkupByAge(passenger));
@@ -119,16 +111,9 @@ export class TrainTicketEstimator {
       }
   }
 
-  // TODO: refacto 
   calculAdjustmentPriceByDate(trainDetails: TripRequest, tripTicket: TripTicket) {
-    if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
-      tripTicket.addDiscount(0.2);
-    } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
-      const diffDays = this.dateDiffInDays(trainDetails.getDeparture());
-      tripTicket.addMarkup((20 - diffDays) * 0.02); // I tried. it works. I don't know why.
-    } else {
-      tripTicket.addMarkup(1);
-    }
+    tripTicket.addMarkup(Markup.getMarkupByDate(trainDetails.getDeparture()));
+    tripTicket.addDiscount(Discount.getDiscountByDate(trainDetails.getDeparture()));
   }
 
 

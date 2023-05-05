@@ -1,3 +1,4 @@
+import { DateUtils } from "./date-utils";
 import { DiscountCard, Passenger } from "./model/trip.request";
 
 export class Discount {
@@ -23,6 +24,14 @@ export class Discount {
     } else {
       return 0;
     }
+  }
+
+
+  static getDiscountByDate(date: Date): number {
+    if (date >= DateUtils.getDateInFutur(30)) {
+      return 0.2;
+    }
+    return 0;
   }
   
 }
