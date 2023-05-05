@@ -36,7 +36,23 @@ export class TrainTicketEstimator {
     let total = 0;
 
     for (const passenger of passengers) {
-      total += this.calculPricePassenger(passenger, apiPrice, trainDetails);
+      const fixPrice = this.getFixPrice(passenger);
+      if (fixPrice != -1) {
+        total += fixPrice;
+        continue;
+      }
+
+      const reductions = this.calculReductionsPassenger(
+        passenger,
+        trainDetails
+      );
+
+      const result = reductions.map((reduction) => apiPrice * reduction);
+      let sum = 0;
+      for (let i = 0; i < result.length; i++) {
+        sum += result[i];
+      }
+      total += sum + apiPrice;
     }
 
     if (passengers.length == 2) {
@@ -112,11 +128,8 @@ export class TrainTicketEstimator {
 
     return diffDays;
   }
-  calculPricePassenger(
-    passenger: Passenger,
-    apiPrice: number,
-    trainDetails: TripRequest
-  ): number {
+
+  getFixPrice(passenger: Passenger) {
     if (passenger.age < 0) {
       throw new InvalidTripInputException("Age is invalid");
     }
@@ -129,36 +142,37 @@ export class TrainTicketEstimator {
     if (passenger.age < 4) {
       return 9;
     }
+    return -1;
+  }
 
-    let reduction = 0;
-    
-    let tmpPrice = 0;
+  calculReductionsPassenger(
+    passenger: Passenger,
+    trainDetails: TripRequest
+  ): number[] {
+    const reductions = [];
 
     if (passenger.age <= 17) {
-      tmpPrice = apiPrice * 0.6;
+      reductions.push(-0.4);
 
       // Seniors
     } else if (passenger.age >= 70) {
-      tmpPrice = apiPrice * 0.8;
+      reductions.push(-0.2);
       if (passenger.hasDiscount(DiscountCard.Senior)) {
-        tmpPrice -= apiPrice * 0.2;
+        reductions.push(-0.2);
       }
     } else {
-      tmpPrice = apiPrice * 1.2;
+      reductions.push(0.2);
     }
-
-    
 
     if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
       // on retire les 20% de la reduc quand on achete le billet tardivement
-      tmpPrice -= apiPrice * 0.2;
+      reductions.push(-0.2);
     } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
       const diffDays = this.dateDiffInDays(trainDetails.getDeparture());
-      tmpPrice += (20 - diffDays) * 0.02 * apiPrice; // I tried. it works. I don't know why.
+      reductions.push((20 - diffDays) * 0.02); // I tried. it works. I don't know why.
     } else {
-      tmpPrice += apiPrice;
+      reductions.push(1);
     }
-
-    return tmpPrice;
+    return reductions;
   }
 }
