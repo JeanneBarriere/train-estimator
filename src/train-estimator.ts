@@ -2,20 +2,18 @@ import { DiscountByCard } from "./discount";
 import { DiscountCard, Passenger, TripRequest } from "./model/trip.request";
 import { TripTicket } from "./trip-ticket";
 import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
-import { ApiException } from "./exceptions/ApiException";
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 
 export class TrainTicketEstimator {
   async estimate(trainDetails: TripRequest): Promise<number> {
-    const passengers = [...trainDetails.passengers];
-    if (passengers.length === 0) {
+    if (trainDetails.numberOfPassengers() === 0) {
       return 0;
     }
-    this.inputValidate(trainDetails);
+    this.validateInputs(trainDetails);
 
     const tripTicket = new TripTicket();
 
-    for (const passenger of passengers) {
+    for (const passenger of trainDetails.passengers) {
       const fixPrice = this.getFixPrice(passenger);
       if (fixPrice != -1) {
         tripTicket.addTotal(fixPrice);
@@ -23,18 +21,19 @@ export class TrainTicketEstimator {
       }
 
       tripTicket.addDiscounts(
-        this.calculReductionsPassenger(passenger, trainDetails)
+        this.calculAdjustmentPrice(passenger, trainDetails)
       );
     }
 
-    if (passengers.length < 3) {
-      this.addDiscountForCoupleCards(passengers, tripTicket, trainDetails);
+    if (trainDetails.numberOfPassengers() < 3) {
+      this.addDiscountForCoupleCards(tripTicket, trainDetails);
     }
 
     const apiPrice = await this.fetchPrice(trainDetails);
     return tripTicket.calculTotal(apiPrice);
   }
 
+  // TODO: refacto extract all methods with date logic
   getToday() {
     return new Date();
   }
@@ -46,7 +45,17 @@ export class TrainTicketEstimator {
     return date;
   }
 
-  private inputValidate(trainDetails: TripRequest) {
+  dateDiffInDays(date1: Date) {
+    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const diffTime: number = Math.abs(
+      date1.getTime() - this.getToday().getTime()
+    );
+    const diffDays: number = Math.ceil(diffTime / _MS_PER_DAY);
+
+    return diffDays;
+  }
+
+  private validateInputs(trainDetails: TripRequest) {
     if (trainDetails.details.from.trim().length === 0) {
       throw new InvalidTripInputException("Start city is invalid");
     }
@@ -62,28 +71,15 @@ export class TrainTicketEstimator {
   }
 
   addDiscountForCoupleCards(
-    passengers: Passenger[],
-    tripTicket: TripTicket, 
+    tripTicket: TripTicket,
     trainDetails: TripRequest
   ): void {
-    let discountCard: DiscountCard = DiscountCard.Couple;
-    if (passengers.length == 1) {
-      discountCard = DiscountCard.HalfCouple;
-    }
-    if (!trainDetails.passengersHasDiscount(discountCard) )
-      return;
-    if (trainDetails.hasMinor()) return;
+    const discountCard: DiscountCard = trainDetails.hasOnePassenger()
+      ? DiscountCard.HalfCouple
+      : DiscountCard.Couple;
+
+    if (trainDetails.cantApplyDiscountForCoupleCards(discountCard)) return;
     tripTicket.addDiscount(-DiscountByCard.getDiscount(discountCard));
-  }
-
-  dateDiffInDays(date1: Date) {
-    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const diffTime: number = Math.abs(
-      date1.getTime() - this.getToday().getTime()
-    );
-    const diffDays: number = Math.ceil(diffTime / _MS_PER_DAY);
-
-    return diffDays;
   }
 
   getFixPrice(passenger: Passenger) {
@@ -102,7 +98,8 @@ export class TrainTicketEstimator {
     return -1;
   }
 
-  calculReductionsPassenger(
+  // TODO: refacto and split this method in two
+  calculAdjustmentPrice(
     passenger: Passenger,
     trainDetails: TripRequest
   ): number[] {

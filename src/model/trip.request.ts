@@ -29,6 +29,18 @@ export class TripRequest {
     return this.passengers.some((passenger) => passenger.isMinor());
   }
 
+  numberOfPassengers(): number {
+    return this.passengers.length;
+  }
+
+  cantApplyDiscountForCoupleCards(card : DiscountCard): boolean {
+    return this.hasMinor() || !this.passengersHasDiscount(card);
+  }
+
+  hasOnePassenger(): boolean {
+    return this.numberOfPassengers() === 1;
+  }
+
 }
 
 export class TripDetails {

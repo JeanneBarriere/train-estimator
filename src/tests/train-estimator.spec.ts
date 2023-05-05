@@ -583,7 +583,7 @@ describe("train estimator", function () {
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(3);
   });
-  it("should return price senior with dicount card senior couple for 2 personne with age ok", async () => {
+  it("should return price trainstroke with half couple", async () => {
     const discountCardHalfCouple = DiscountCard.HalfCouple;
     const discountCardSenior = DiscountCard.TrainStroke;
     const passenger1: Passenger = new Passenger(20, [
