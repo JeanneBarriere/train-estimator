@@ -5,6 +5,22 @@ export class Passenger {
     return this.age < 18;
   }
 
+  public isMajor(): boolean {
+    return this.age >= 18 && this.age < 70;
+  }
+
+  public isSenior(): boolean {
+    return this.age >= 70;
+  }
+
+  public isBaby(): boolean {
+    return this.age < 1;
+  }
+
+  public isKid(): boolean {
+    return this.age >= 1 && this.age < 4;
+  }
+
   public hasDiscount(discount: DiscountCard): boolean {
     return this.discounts.includes(discount);
   }

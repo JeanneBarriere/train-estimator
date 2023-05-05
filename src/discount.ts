@@ -1,7 +1,7 @@
-import { DiscountCard } from "./model/trip.request";
+import { DiscountCard, Passenger } from "./model/trip.request";
 
-export class DiscountByCard {
-  static getDiscount(card: DiscountCard): number {
+export class Discount {
+  static getDiscountByCard(card: DiscountCard): number {
     switch (card) {
       case DiscountCard.Senior:
         return 0.2;
@@ -15,4 +15,14 @@ export class DiscountByCard {
         return 0;
     }
   }
+  static getDiscountByAge(passenger: Passenger): number {
+    if (passenger.isMinor()) {
+      return 0.4;
+    } else if (passenger.isSenior()) {
+      return 0.2;
+    } else {
+      return -0.2;
+    }
+  }
+  
 }

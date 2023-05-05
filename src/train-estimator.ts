@@ -1,4 +1,4 @@
-import { DiscountByCard } from "./discount";
+import { Discount } from "./discount";
 import { DiscountCard, Passenger, TripRequest } from "./model/trip.request";
 import { TripTicket } from "./trip-ticket";
 import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
@@ -79,42 +79,52 @@ export class TrainTicketEstimator {
       : DiscountCard.Couple;
 
     if (trainDetails.cantApplyDiscountForCoupleCards(discountCard)) return;
-    tripTicket.addDiscount(DiscountByCard.getDiscount(discountCard));
+    tripTicket.addDiscount(Discount.getDiscountByCard(discountCard));
   }
 
   private getFixPrice(passenger: Passenger) {
     if (passenger.age < 0) {
       throw new InvalidTripInputException("Age is invalid");
     }
-    if (passenger.age < 1) {
+    if (passenger.isBaby()) {
       return 0;
     }
     if (passenger.hasDiscount(DiscountCard.TrainStroke)) {
       return 1;
     }
-    if (passenger.age < 4) {
+    if (passenger.isKid()) {
       return 9;
     }
     return -1;
   }
 
-  // TODO: refacto and split this method in two
+  
   private calculAdjustmentPrice(
     passenger: Passenger,
     trainDetails: TripRequest,
     tripTicket: TripTicket
   ): void {
-    if (passenger.age <= 17) {
-      tripTicket.addDiscount(0.4);
-    } else if (passenger.age >= 70) {
-      tripTicket.addDiscount(0.2);
-      if (passenger.hasDiscount(DiscountCard.Senior)) {
-        tripTicket.addDiscount(0.2);
-      }
-    } else {
-      tripTicket.addMarkup(0.2);
-    }
+    this.calculAdjustmentPriceByAge(passenger, tripTicket);
+    this.calculAdjustmentPriceByDate(trainDetails, tripTicket);
+    tripTicket.addPassengerWithAdjustments();
+  }
 
+  // TODO: refacto 
+  calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
+    // if (passenger.isMinor()) {
+    //   tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
+    // } else if (passenger.isSenior()) {
+      tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
+      if (passenger.hasDiscount(DiscountCard.Senior) && passenger.isSenior()) {
+        tripTicket.addDiscount(Discount.getDiscountByCard(DiscountCard.Senior));
+      }
+    // } else {
+    //   tripTicket.addMarkup(0.2);
+    // }
+  }
+
+  // TODO: refacto 
+  calculAdjustmentPriceByDate(trainDetails: TripRequest, tripTicket: TripTicket) {
     if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
       tripTicket.addDiscount(0.2);
     } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
@@ -123,8 +133,8 @@ export class TrainTicketEstimator {
     } else {
       tripTicket.addMarkup(1);
     }
-    tripTicket.addPassengerWithAdjustments();
   }
+
 
   protected async fetchPrice(trainDetails: TripRequest) {
     const apiService = new ApiPriceInformationsService();
