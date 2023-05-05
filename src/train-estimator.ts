@@ -70,7 +70,7 @@ export class TrainTicketEstimator {
     }
   }
 
-  addDiscountForCoupleCards(
+  private addDiscountForCoupleCards(
     tripTicket: TripTicket,
     trainDetails: TripRequest
   ): void {
@@ -82,7 +82,7 @@ export class TrainTicketEstimator {
     tripTicket.addDiscount(-DiscountByCard.getDiscount(discountCard));
   }
 
-  getFixPrice(passenger: Passenger) {
+  private getFixPrice(passenger: Passenger) {
     if (passenger.age < 0) {
       throw new InvalidTripInputException("Age is invalid");
     }
@@ -99,7 +99,7 @@ export class TrainTicketEstimator {
   }
 
   // TODO: refacto and split this method in two
-  calculAdjustmentPrice(
+  private calculAdjustmentPrice(
     passenger: Passenger,
     trainDetails: TripRequest
   ): number[] {
