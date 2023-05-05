@@ -1,12 +1,40 @@
-import {
-  ApiException,
-  DiscountCard,
-  InvalidTripInputException,
-  Passenger,
-  TripRequest,
-} from "./model/trip.request";
+import { DiscountByCard } from "./discount";
+import { DiscountCard, Passenger, TripRequest } from "./model/trip.request";
+import { TripTicket } from "./trip-ticket";
+import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
+import { ApiException } from "./exceptions/ApiException";
+import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 
 export class TrainTicketEstimator {
+  async estimate(trainDetails: TripRequest): Promise<number> {
+    const passengers = [...trainDetails.passengers];
+    if (passengers.length === 0) {
+      return 0;
+    }
+    this.inputValidate(trainDetails);
+
+    const tripTicket = new TripTicket();
+
+    for (const passenger of passengers) {
+      const fixPrice = this.getFixPrice(passenger);
+      if (fixPrice != -1) {
+        tripTicket.addTotal(fixPrice);
+        continue;
+      }
+
+      tripTicket.addDiscounts(
+        this.calculReductionsPassenger(passenger, trainDetails)
+      );
+    }
+
+    if (passengers.length < 3) {
+      this.addDiscountForCoupleCards(passengers, tripTicket, trainDetails);
+    }
+
+    const apiPrice = await this.fetchPrice(trainDetails);
+    return tripTicket.calculTotal(apiPrice);
+  }
+
   getToday() {
     return new Date();
   }
@@ -18,71 +46,6 @@ export class TrainTicketEstimator {
     return date;
   }
 
-  async estimate(trainDetails: TripRequest): Promise<number> {
-    const passengers = trainDetails.passengers;
-    if (passengers.length === 0) {
-      return 0;
-    }
-
-    this.inputValidate(trainDetails);
-
-    // TODO USE THIS LINE AT THE END
-    const apiPrice = await this.fetchPrice(trainDetails);
-
-    if (apiPrice === -1) {
-      throw new ApiException();
-    }
-
-    let total = 0;
-
-    for (const passenger of passengers) {
-      const fixPrice = this.getFixPrice(passenger);
-      if (fixPrice != -1) {
-        total += fixPrice;
-        continue;
-      }
-
-      const reductions = this.calculReductionsPassenger(
-        passenger,
-        trainDetails
-      );
-
-      const result = reductions.map((reduction) => apiPrice * reduction);
-      let sum = 0;
-      for (let i = 0; i < result.length; i++) {
-        sum += result[i];
-      }
-      total += sum + apiPrice;
-    }
-
-    if (passengers.length == 2) {
-      let hasDiscount = false;
-      let minor = false;
-      for (let i = 0; i < passengers.length; i++) {
-        if (passengers[i].hasDiscount(DiscountCard.Couple)) {
-          hasDiscount = true;
-        }
-        if (passengers[i].isMinor()) {
-          minor = true;
-        }
-      }
-      if (hasDiscount && !minor) {
-        total -= apiPrice * 0.2 * 2;
-      }
-    }
-
-    if (passengers.length == 1) {
-      if (
-        passengers[0].hasDiscount(DiscountCard.HalfCouple) &&
-        !passengers[0].isMinor()
-      ) {
-        total -= apiPrice * 0.1;
-      }
-    }
-
-    return total;
-  }
-
   private inputValidate(trainDetails: TripRequest) {
     if (trainDetails.details.from.trim().length === 0) {
       throw new InvalidTripInputException("Start city is invalid");
@@ -92,31 +55,25 @@ export class TrainTicketEstimator {
       throw new InvalidTripInputException("Destination city is invalid");
     }
 
-    if (
-      trainDetails.getDeparture() <
-      new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        new Date().getDay(),
-        0,
-        0,
-        0
-      )
-    ) {
+    const todayMidnight = this.getToday().setHours(0, 0, 0, 0);
+    if (trainDetails.getDeparture().getTime() < todayMidnight) {
       throw new InvalidTripInputException("Date is invalid");
     }
   }
 
-  protected async fetchPrice(trainDetails: TripRequest) {
-    return (
-      (
-        await (
-          await fetch(
-            `https://sncf.com/api/train/estimate/price?from=${trainDetails.details.from}&to=${trainDetails.details.to}&date=${trainDetails.details.when}`
-          )
-        ).json()
-      )?.price || -1
-    );
+  addDiscountForCoupleCards(
+    passengers: Passenger[],
+    tripTicket: TripTicket, 
+    trainDetails: TripRequest
+  ): void {
+    let discountCard: DiscountCard = DiscountCard.Couple;
+    if (passengers.length == 1) {
+      discountCard = DiscountCard.HalfCouple;
+    }
+    if (!trainDetails.passengersHasDiscount(discountCard) )
+      return;
+    if (trainDetails.hasMinor()) return;
+    tripTicket.addDiscount(-DiscountByCard.getDiscount(discountCard));
   }
 
   dateDiffInDays(date1: Date) {
@@ -165,7 +122,6 @@ export class TrainTicketEstimator {
     }
 
     if (trainDetails.getDeparture() >= this.getDateInFutur(30)) {
-      // on retire les 20% de la reduc quand on achete le billet tardivement
       reductions.push(-0.2);
     } else if (trainDetails.getDeparture() > this.getDateInFutur(5)) {
       const diffDays = this.dateDiffInDays(trainDetails.getDeparture());
@@ -174,5 +130,10 @@ export class TrainTicketEstimator {
       reductions.push(1);
     }
     return reductions;
+  }
+
+  protected async fetchPrice(trainDetails: TripRequest) {
+    const apiService = new ApiPriceInformationsService();
+    return await apiService.getPrice(trainDetails);
   }
 }

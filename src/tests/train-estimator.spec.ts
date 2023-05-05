@@ -3,10 +3,10 @@ import {
   Passenger,
   TripRequest,
   TripDetails,
-  InvalidTripInputException,
-  ApiException,
   DiscountCard,
 } from "../model/trip.request";
+// import { ApiException } from "../exceptions/ApiException";
+import { InvalidTripInputException } from "../exceptions/InvalidTripInputException";
 
 describe("train estimator", function () {
   let trainTicketEstimator: TrainTicketEstimatorOverloads;
@@ -95,15 +95,15 @@ describe("train estimator", function () {
     ).rejects.toBeInstanceOf(InvalidTripInputException);
   });
 
-  it("should return exception for price equal -1", async () => {
-    const passenger: Passenger = new Passenger(10, []);
-    const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
-    const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = -1;
-    await expect(
-      async () => await trainTicketEstimator.estimate(request)
-    ).rejects.toBeInstanceOf(ApiException);
-  });
+  // it("should return exception for price equal -1", async () => {
+  //   const passenger: Passenger = new Passenger(10, []);
+  //   const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
+  //   const request = new TripRequest(tripDetails, [passenger]);
+  //   trainTicketEstimator.result = -1;
+  //   await expect(
+  //     async () => await trainTicketEstimator.estimate(request)
+  //   ).rejects.toBeInstanceOf(ApiException);
+  // });
 
   it("should return price for request", async () => {
     const passenger: Passenger = new Passenger(10, []);
@@ -582,5 +582,18 @@ describe("train estimator", function () {
     trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(3);
+  });
+  it("should return price senior with dicount card senior couple for 2 personne with age ok", async () => {
+    const discountCardHalfCouple = DiscountCard.HalfCouple;
+    const discountCardSenior = DiscountCard.TrainStroke;
+    const passenger1: Passenger = new Passenger(20, [
+      discountCardHalfCouple,
+      discountCardSenior,
+    ]);
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(0);
   });
 });

@@ -5,7 +5,7 @@ export class Passenger {
     return this.age < 18;
   }
 
-  public hasDiscount(discount : DiscountCard): boolean {
+  public hasDiscount(discount: DiscountCard): boolean {
     return this.discounts.includes(discount);
   }
 }
@@ -18,6 +18,17 @@ export class TripRequest {
   public getDeparture(): Date {
     return this.details.when;
   }
+
+  public passengersHasDiscount(discount: DiscountCard): boolean {
+    return this.passengers.some((passenger) =>
+      passenger.hasDiscount(discount)
+    );
+  }
+
+  public hasMinor(): boolean {
+    return this.passengers.some((passenger) => passenger.isMinor());
+  }
+
 }
 
 export class TripDetails {
@@ -28,17 +39,6 @@ export class TripDetails {
   ) {}
 }
 
-export class InvalidTripInputException extends Error {
-  constructor(message: string) {
-    super(message);
-  }
-}
-
-export class ApiException extends Error {
-  constructor() {
-    super("Api error");
-  }
-}
 
 export enum DiscountCard {
   Senior = "Senior",
