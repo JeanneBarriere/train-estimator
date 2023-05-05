@@ -5,6 +5,10 @@ import { InvalidTripInputException } from "./exceptions/InvalidTripInputExceptio
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 
 export class TrainTicketEstimator {
+
+
+  // Note : Dans le code de base TrainStroke est bien cumulable avec la carte halfCouple, cf le dernier test de la classe TrainTicketEstimatorTest
+  // nous avons n'avons pas modifier ce fonctionnement
   async estimate(trainDetails: TripRequest): Promise<number> {
     if (trainDetails.numberOfPassengers() === 0) {
       return 0;
