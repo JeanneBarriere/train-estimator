@@ -18,13 +18,7 @@ export class TrainTicketEstimator {
     const tripTicket = new TripTicket();
 
     for (const passenger of trainDetails.passengers) {
-      const fixPrice = this.getFixPrice(passenger);
-      if (fixPrice != -1) {
-        tripTicket.addTotal(fixPrice);
-        continue;
-      }
-
-      this.calculAdjustmentPrice(passenger, trainDetails, tripTicket);
+      this.calculPassengerPrice(passenger, trainDetails, tripTicket);
     }
 
     if (trainDetails.numberOfPassengers() < 3) {
@@ -35,20 +29,6 @@ export class TrainTicketEstimator {
     return tripTicket.calculTotal(apiPrice);
   }
 
-  // TODO: refacto extract all methods with date logic
-  getToday() {
-    return DateUtils.getToday();
-  }
-
-  getDateInFutur(days: number): Date {
-    const date = new Date(
-      this.getToday().setDate(this.getToday().getDate() + days)
-    );
-    return date;
-  }
-
-
-
   private validateInputs(trainDetails: TripRequest) {
     if (trainDetails.details.from.trim().length === 0) {
       throw new InvalidTripInputException("Start city is invalid");
@@ -58,7 +38,7 @@ export class TrainTicketEstimator {
       throw new InvalidTripInputException("Destination city is invalid");
     }
 
-    const todayMidnight = this.getToday().setHours(0, 0, 0, 0);
+    const todayMidnight = DateUtils.getToday().setHours(0, 0, 0, 0);
     if (trainDetails.getDeparture().getTime() < todayMidnight) {
       throw new InvalidTripInputException("Date is invalid");
     }
@@ -74,6 +54,15 @@ export class TrainTicketEstimator {
 
     if (trainDetails.cantApplyDiscountForCoupleCards(discountCard)) return;
     tripTicket.addDiscount(Discount.getDiscountByCard(discountCard));
+  }
+
+  private calculPassengerPrice(passenger: Passenger, trainDetails: TripRequest, tripTicket: TripTicket) {
+    const fixPrice = this.getFixPrice(passenger);
+    if (fixPrice != -1) {
+      tripTicket.addTotal(fixPrice);
+      return;
+    }
+    this.calculAdjustmentPrice(passenger, trainDetails, tripTicket);
   }
 
   private getFixPrice(passenger: Passenger) {
