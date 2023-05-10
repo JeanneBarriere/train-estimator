@@ -6,6 +6,8 @@ export class Discount {
     switch (card) {
       case DiscountCard.Senior:
         return 0.2;
+      case DiscountCard.Family:
+        return 0.3;
       case DiscountCard.TrainStroke:
         return 0;
       case DiscountCard.Couple:

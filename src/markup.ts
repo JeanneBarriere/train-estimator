@@ -1,5 +1,4 @@
 import { DateUtils } from "./date-utils";
-import { InvalidTripInputException } from "./exceptions/InvalidTripInputException";
 import { Passenger } from "./model/trip.request";
 
 export class Markup {

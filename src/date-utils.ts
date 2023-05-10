@@ -1,5 +1,3 @@
-import { DiscountCard, Passenger } from "./model/trip.request";
-
 export class DateUtils {
  
 

@@ -1,5 +1,18 @@
 export class Passenger {
-  constructor(readonly age: number, readonly discounts: DiscountCard[]) {}
+  constructor(
+    readonly age: number,
+    readonly discounts: DiscountCard[],
+    readonly lastname = ""
+  ) {}
+  
+  canApplyFamilyDiscount() {
+    return this.hasLastname() && this.hasDiscount(DiscountCard.Family);
+  }
+  hasLastname(): boolean {
+    return this.lastname !== "";
+  }
+  isApplyFamilyDiscount = false;
+
 
   public isMinor(): boolean {
     return this.age < 18;
@@ -24,6 +37,14 @@ export class Passenger {
   public hasDiscount(discount: DiscountCard): boolean {
     return this.discounts.includes(discount);
   }
+
+  get isFamilyDiscount(): boolean {
+    return this.isApplyFamilyDiscount;
+  }
+
+  valideFamilyDiscount(): void {
+    this.isApplyFamilyDiscount = true;
+  }
 }
 
 export class TripRequest {
@@ -36,9 +57,7 @@ export class TripRequest {
   }
 
   public passengersHasDiscount(discount: DiscountCard): boolean {
-    return this.passengers.some((passenger) =>
-      passenger.hasDiscount(discount)
-    );
+    return this.passengers.some((passenger) => passenger.hasDiscount(discount));
   }
 
   public hasMinor(): boolean {
@@ -49,7 +68,7 @@ export class TripRequest {
     return this.passengers.length;
   }
 
-  cantApplyDiscountForCoupleCards(card : DiscountCard): boolean {
+  cantApplyDiscountForCoupleCards(card: DiscountCard): boolean {
     return this.hasMinor() || !this.passengersHasDiscount(card);
   }
 
@@ -57,6 +76,12 @@ export class TripRequest {
     return this.numberOfPassengers() === 1;
   }
 
+  canApplyFamilyDiscount(): boolean {
+    return this.passengers.some(
+      (passenger) =>
+        passenger.hasDiscount(DiscountCard.Family) && passenger.hasLastname()
+    );
+  }
 }
 
 export class TripDetails {
@@ -67,10 +92,10 @@ export class TripDetails {
   ) {}
 }
 
-
 export enum DiscountCard {
   Senior = "Senior",
   TrainStroke = "TrainStroke",
   Couple = "Couple",
   HalfCouple = "HalfCouple",
+  Family = "Family",
 }

@@ -17,11 +17,14 @@ export class TrainTicketEstimator {
 
     const tripTicket = new TripTicket();
 
+
+    tripTicket.saveLastNames(trainDetails);
+
     for (const passenger of trainDetails.passengers) {
       this.calculPassengerPrice(passenger, trainDetails, tripTicket);
     }
 
-    if (trainDetails.numberOfPassengers() < 3) {
+    if (trainDetails.numberOfPassengers() < 3 && !trainDetails.canApplyFamilyDiscount()) {
       this.addDiscountForCoupleCards(tripTicket, trainDetails);
     }
 
@@ -56,7 +59,11 @@ export class TrainTicketEstimator {
     tripTicket.addDiscount(Discount.getDiscountByCard(discountCard));
   }
 
-  private calculPassengerPrice(passenger: Passenger, trainDetails: TripRequest, tripTicket: TripTicket) {
+  private calculPassengerPrice(
+    passenger: Passenger,
+    trainDetails: TripRequest,
+    tripTicket: TripTicket
+  ) {
     const fixPrice = this.getFixPrice(passenger);
     if (fixPrice != -1) {
       tripTicket.addTotal(fixPrice);
@@ -81,30 +88,45 @@ export class TrainTicketEstimator {
     return -1;
   }
 
-  
   private calculAdjustmentPrice(
     passenger: Passenger,
     trainDetails: TripRequest,
     tripTicket: TripTicket
   ): void {
+    this.calculFamilyDiscount(tripTicket, passenger);
     this.calculAdjustmentPriceByAge(passenger, tripTicket);
     this.calculAdjustmentPriceByDate(trainDetails, tripTicket);
     tripTicket.addPassengerWithAdjustments();
   }
 
-  calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
-      tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
-      tripTicket.addMarkup(Markup.getMarkupByAge(passenger));
-      if (passenger.hasDiscount(DiscountCard.Senior) && passenger.isSenior()) {
-        tripTicket.addDiscount(Discount.getDiscountByCard(DiscountCard.Senior));
-      }
+  private calculFamilyDiscount(tripTicket: TripTicket, passenger: Passenger) {
+    if (tripTicket.hasLastname(passenger.lastname)) {
+      tripTicket.addDiscount(Discount.getDiscountByCard(DiscountCard.Family));
+      passenger.isApplyFamilyDiscount = true;
+    }
   }
 
-  calculAdjustmentPriceByDate(trainDetails: TripRequest, tripTicket: TripTicket) {
+  private calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
+    tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
+    tripTicket.addMarkup(Markup.getMarkupByAge(passenger));
+    if (this.canApplySeniorCard(passenger)) {
+      tripTicket.addDiscount(Discount.getDiscountByCard(DiscountCard.Senior));
+    }
+  }
+
+  private canApplySeniorCard(passenger: Passenger) {
+    return passenger.hasDiscount(DiscountCard.Senior) && passenger.isSenior() && !passenger.isApplyFamilyDiscount;
+  }
+
+  private calculAdjustmentPriceByDate(
+    trainDetails: TripRequest,
+    tripTicket: TripTicket
+  ) {
     tripTicket.addMarkup(Markup.getMarkupByDate(trainDetails.getDeparture()));
-    tripTicket.addDiscount(Discount.getDiscountByDate(trainDetails.getDeparture()));
+    tripTicket.addDiscount(
+      Discount.getDiscountByDate(trainDetails.getDeparture())
+    );
   }
-
 
   protected async fetchPrice(trainDetails: TripRequest) {
     const apiService = new ApiPriceInformationsService();
