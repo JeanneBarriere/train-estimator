@@ -17,6 +17,8 @@ describe("train estimator", function () {
   const datePlus20Days: Date = new Date();
   const datePlus29Days: Date = new Date();
   const datePlus31Days: Date = new Date();
+  const datePlus5Hours: Date = new Date();
+  const datePlus6Hours: Date = new Date();
 
   class TrainTicketEstimatorOverloads extends TrainTicketEstimator {
     result = 0;
@@ -38,6 +40,8 @@ describe("train estimator", function () {
     datePlus25Days.setDate(datePlus25Days.getDate() + 25);
     datePlus29Days.setDate(datePlus29Days.getDate() + 20);
     datePlus31Days.setDate(datePlus31Days.getDate() + 31);
+    datePlus5Hours.setHours(datePlus5Hours.getHours() + 5);
+    datePlus6Hours.setHours(datePlus6Hours.getHours() + 6);
   });
 
   beforeEach(() => {
@@ -595,5 +599,27 @@ describe("train estimator", function () {
     trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
+  });
+
+  it("should return price with 20% reduction for travel in 6hours", async () => {
+    const discountCardHalfCouple = DiscountCard.HalfCouple;
+    const discountCardSenior = DiscountCard.TrainStroke;
+    const passenger1: Passenger = new Passenger(18, []);
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus5Hours);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(10);
+  });
+
+  it("should return price with 20% reduction for travel in 6hours", async () => {
+    const discountCardHalfCouple = DiscountCard.HalfCouple;
+    const discountCardSenior = DiscountCard.TrainStroke;
+    const passenger1: Passenger = new Passenger(18, []);
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus6Hours);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(10);
   });
 });

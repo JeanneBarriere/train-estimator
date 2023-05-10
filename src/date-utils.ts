@@ -16,6 +16,13 @@ export class DateUtils {
     return new Date();
   }
 
+  static getDateInFuturHours(hours: number): Date {
+    const date = new Date(
+      this.getToday().setHours(this.getToday().getHours() + hours)
+    );
+    return date;
+  }
+
   static dateDiffInDays(date1: Date) {
     const _MS_PER_DAY = 1000 * 60 * 60 * 24;
     const diffTime: number = Math.abs(

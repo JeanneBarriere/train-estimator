@@ -12,12 +12,7 @@ export class Markup {
     }
   }
     
-  static getDateInFutur(days: number): Date {
-    const date = new Date(
-      this.getToday().setDate(this.getToday().getDate() + days)
-    );
-    return date;
-  }
+
 
     
   static getToday() {
@@ -25,14 +20,12 @@ export class Markup {
   }
     
     static getMarkupByDate(date: Date): number {
-       
-
-        if (date > this.getDateInFutur(5) && date < this.getDateInFutur(30)) {
+        if (date > DateUtils.getDateInFutur(5) && date < DateUtils.getDateInFutur(30)) {
         const diffDays = DateUtils.dateDiffInDays(date);
             return (20 - diffDays) * 0.02;
         }
         
-        if (date <= this.getDateInFutur(5)) {
+        if (date <= DateUtils.getDateInFutur(5) && date > DateUtils.getDateInFuturHours(6)) {
             return 1;
         }
         return 0;

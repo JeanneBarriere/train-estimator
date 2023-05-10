@@ -28,9 +28,12 @@ export class Discount {
 
 
   static getDiscountByDate(date: Date): number {
-    if (date >= DateUtils.getDateInFutur(30)) {
+    if (date <= DateUtils.getDateInFuturHours(6)) {
       return 0.2;
     }
+    if (date >= DateUtils.getDateInFutur(30)) {
+      return 0.2;
+    } 
     return 0;
   }
   
