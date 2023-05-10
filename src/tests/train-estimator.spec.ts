@@ -602,8 +602,7 @@ describe("train estimator", function () {
   });
 
   it("should return price with 20% reduction for travel in 6hours", async () => {
-    const discountCardHalfCouple = DiscountCard.HalfCouple;
-    const discountCardSenior = DiscountCard.TrainStroke;
+
     const passenger1: Passenger = new Passenger(18, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus5Hours);
     const request = new TripRequest(tripDetails, [passenger1]);
@@ -613,13 +612,200 @@ describe("train estimator", function () {
   });
 
   it("should return price with 20% reduction for travel in 6hours", async () => {
-    const discountCardHalfCouple = DiscountCard.HalfCouple;
-    const discountCardSenior = DiscountCard.TrainStroke;
+  
     const passenger1: Passenger = new Passenger(18, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus6Hours);
     const request = new TripRequest(tripDetails, [passenger1]);
     trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10);
+  });
+
+
+  //TESTS FOR FAMILY FEATURE
+
+  it("should return price with family card for 1 ", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(8.4);
+  });
+
+  it("should return price with family card for 2", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois');
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois');
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(14);
+  });
+
+  it("should return price with two family card for 2", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois');
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois');
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(14);
+  });
+
+  it("should return price with family card for 2 adults with child", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 +20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois'); //( 10 +20% - 30%) -> 8.4
+    const passenger3: Passenger = new Passenger(6, [], 'Dubois'); //( 10 -40% - 30%) -> 4.2
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(21);
+  });
+
+  it("should return price with family card for 3 adults", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 +20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois'); //( 10 +20% - 30%) -> 8.4
+    const passenger3: Passenger = new Passenger(19, [], 'Dubois'); //( 10 +20% - 30%) -> 8.4
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(25.2);
+  });
+
+  it("should return price with family card for 1 senior 2 adults", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger3: Passenger = new Passenger(71, [], 'Dubois'); //( 10 - 20% - 30%) -> 5.6
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(22.4);
+  });
+
+  it("should return price with family card for 2 adults with same lastname, 1 adult without same lastname", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(22, [], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger3: Passenger = new Passenger(22, [], 'Toto'); //( 10 + 20%) -> 12
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(28.8);
+  });
+
+  it("should return price with family card for 1 adult 1 child with same lastname, 1 adult without same lastname", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(2, [], 'Dubois'); //( 9 - 30%) -> 6.3
+    const passenger3: Passenger = new Passenger(22, [], 'Toto'); //( 10 + 20%) -> 12
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(26.7);
+  });
+
+  it("should return price with family card for 1 adult 1 minor with same lastname, 1 adult without same lastname", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const passenger2: Passenger = new Passenger(15, [], 'Dubois'); //( 10 - 40% - 30%) -> 4.2
+    const passenger3: Passenger = new Passenger(22, [], 'Toto'); //( 10 + 20%) -> 12
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(24.6);
+  });
+
+  it("should return price with family card for 1 adult with family card and 1 adult + 1 minor without same lastname", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(18, [], 'Dubois'); //( 10 + 20%) -> 12
+    const passenger2: Passenger = new Passenger(15, [], 'Dubois'); //( 10 - 40% ) -> 6
+    const passenger3: Passenger = new Passenger(22, [discountCardFamily], 'Toto'); //( 10 + 20% - 30%) -> 8.4
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2, passenger3]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(26.4);
+  });
+
+  it("should return price with family card for 1 adult with halfcouple card", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const discountCardHalfCouple = DiscountCard.HalfCouple;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily, discountCardHalfCouple], 'Dubois'); //( 10 + 20% - 30%) -> 8.4 (la carte half couple ne compte pas)
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(8.4);
+  });
+
+  it("should return price with family card for 2 adult with couple card", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const discountCardCouple = DiscountCard.Couple;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily, discountCardCouple], 'Dubois'); //( 10 + 20% - 30%) -> 8.4 (la carte couple ne compte pas)
+    const passenger2: Passenger = new Passenger(18, [], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(16.8);
+  });
+
+  it("should return price with family card for 2 adult with couple card", async () => {
+    const discountCardFamily = DiscountCard.Family;
+    const discountCardCouple = DiscountCard.Couple;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily], 'Dubois'); //( 10 + 20% - 30%) -> 8.4 (la carte couple ne compte pas)
+    const passenger2: Passenger = new Passenger(18, [discountCardCouple], 'Dubois'); //( 10 + 20% - 30%) -> 8.4
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(16.8);
+  });
+
+  //Note : La carte Train Stroke prime sur toutes les autres car elle n'est pas plus avantageuse que family
+  it("should return price with family card for 2 adult with couple card", async () => { 
+    const discountCardFamily = DiscountCard.Family;
+    const discountCardTrainStroke = DiscountCard.TrainStroke;
+    const passenger1: Passenger = new Passenger(18, [discountCardFamily,discountCardTrainStroke], 'Dubois'); // => 1
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(1);
+  });
+
+  it("should return price with family card for 1 senior with senior card", async () => { 
+    const discountCardFamily = DiscountCard.Family;
+    const discountCardSenior = DiscountCard.Senior;
+    const passenger1: Passenger = new Passenger(71, [discountCardFamily,discountCardSenior], 'Dubois'); // ( 10 - 20% - 30% ) => 5.6 (la carte senior ne compte pas)
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(5.6);
+  });
+
+  it("should return price with family card for 2 adult one with lastname other without lastname", async () => { 
+    const discountCardFamily = DiscountCard.Family;
+    const passenger1: Passenger = new Passenger(20, [discountCardFamily], 'Dubois'); // ( 10 + 20% - 30% ) => 8.4
+    const passenger2: Passenger = new Passenger(20, [], ''); // ( 10 + 20% ) => 12
+    const tripDetails = new TripDetails("Paris", "Bordeaux", datePlus31Days);
+    const request = new TripRequest(tripDetails, [passenger1, passenger2]);
+    trainTicketEstimator.result = 10;
+    const result = await trainTicketEstimator.estimate(request);
+    expect(result).toEqual(20.4);
   });
 });
