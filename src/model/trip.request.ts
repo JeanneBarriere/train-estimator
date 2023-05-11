@@ -4,7 +4,7 @@ export class Passenger {
     readonly discounts: DiscountCard[],
     readonly lastname = ""
   ) {}
-  
+
   canApplyFamilyDiscount() {
     return this.hasLastname() && this.hasDiscount(DiscountCard.Family);
   }
@@ -12,7 +12,6 @@ export class Passenger {
     return this.lastname !== "";
   }
   isApplyFamilyDiscount = false;
-
 
   public isMinor(): boolean {
     return this.age < 18;

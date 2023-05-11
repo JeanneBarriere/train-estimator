@@ -5,10 +5,17 @@ import { InvalidTripInputException } from "./exceptions/InvalidTripInputExceptio
 import { ApiPriceInformationsService } from "./external/api-price-informations.service";
 import { Markup } from "./markup";
 import { DateUtils } from "./date-utils";
+import { ApiException } from "./exceptions/ApiException";
 
 export class TrainTicketEstimator {
   // Note : Dans le code de base TrainStroke est bien cumulable avec la carte halfCouple, cf le dernier test de la classe TrainTicketEstimatorTest
   // nous avons n'avons pas modifier ce fonctionnement
+  private apiPriceInformationsService;
+
+  constructor(apiPriceInformationsService = new ApiPriceInformationsService()) {
+    this.apiPriceInformationsService = apiPriceInformationsService;
+  }
+
   async estimate(trainDetails: TripRequest): Promise<number> {
     if (trainDetails.numberOfPassengers() === 0) {
       return 0;
@@ -17,18 +24,21 @@ export class TrainTicketEstimator {
 
     const tripTicket = new TripTicket();
 
-
     tripTicket.saveLastNames(trainDetails);
 
     for (const passenger of trainDetails.passengers) {
       this.calculPassengerPrice(passenger, trainDetails, tripTicket);
     }
 
-    if (trainDetails.numberOfPassengers() < 3 && !trainDetails.canApplyFamilyDiscount()) {
+    if (
+      trainDetails.numberOfPassengers() < 3 &&
+      !trainDetails.canApplyFamilyDiscount()
+    ) {
       this.addDiscountForCoupleCards(tripTicket, trainDetails);
     }
 
     const apiPrice = await this.fetchPrice(trainDetails);
+
     return tripTicket.calculTotal(apiPrice);
   }
 
@@ -106,7 +116,10 @@ export class TrainTicketEstimator {
     }
   }
 
-  private calculAdjustmentPriceByAge(passenger: Passenger, tripTicket: TripTicket) {
+  private calculAdjustmentPriceByAge(
+    passenger: Passenger,
+    tripTicket: TripTicket
+  ) {
     tripTicket.addDiscount(Discount.getDiscountByAge(passenger));
     tripTicket.addMarkup(Markup.getMarkupByAge(passenger));
     if (this.canApplySeniorCard(passenger)) {
@@ -115,7 +128,11 @@ export class TrainTicketEstimator {
   }
 
   private canApplySeniorCard(passenger: Passenger) {
-    return passenger.hasDiscount(DiscountCard.Senior) && passenger.isSenior() && !passenger.isApplyFamilyDiscount;
+    return (
+      passenger.hasDiscount(DiscountCard.Senior) &&
+      passenger.isSenior() &&
+      !passenger.isApplyFamilyDiscount
+    );
   }
 
   private calculAdjustmentPriceByDate(
@@ -129,7 +146,11 @@ export class TrainTicketEstimator {
   }
 
   protected async fetchPrice(trainDetails: TripRequest) {
-    const apiService = new ApiPriceInformationsService();
-    return await apiService.getPrice(trainDetails);
+    const apiService = this.apiPriceInformationsService;
+    try {
+      return await apiService.getPrice(trainDetails);
+    } catch (error) {
+      throw new ApiException();
+    }
   }
 }

@@ -5,11 +5,12 @@ import {
   TripDetails,
   DiscountCard,
 } from "../model/trip.request";
-// import { ApiException } from "../exceptions/ApiException";
 import { InvalidTripInputException } from "../exceptions/InvalidTripInputException";
+import { ApiPriceInformationsInterface } from "../external/api-price-informations.service";
+import { ApiException } from "../exceptions/ApiException";
 
 describe("train estimator", function () {
-  let trainTicketEstimator: TrainTicketEstimatorOverloads;
+  let trainTicketEstimator: TrainTicketEstimator;
   const date4Days: Date = new Date();
   const date5Days: Date = new Date();
   const date6Days: Date = new Date();
@@ -25,18 +26,22 @@ describe("train estimator", function () {
   const cardTrainStroke = DiscountCard.TrainStroke;
   const cardFamily = DiscountCard.Family;
   const cardHalfCouple = DiscountCard.HalfCouple;
-
-  class TrainTicketEstimatorOverloads extends TrainTicketEstimator {
-    result = 0;
-
-    public async fetchPrice(trainDetails: TripRequest): Promise<number> {
+  
+        
+  class ApiPriceInformationsService
+  implements ApiPriceInformationsInterface
+  {
+    private result = 10;
+    async getPrice(trainDetails: TripRequest): Promise<number> {
       return this.result;
     }
-
+    
     setResults(value: number) {
       this.result = value;
     }
   }
+        
+  const apiPriceInformationsService = new ApiPriceInformationsService();
 
   beforeAll(() => {
     date4Days.setDate(date4Days.getDate() + 4);
@@ -51,7 +56,8 @@ describe("train estimator", function () {
   });
 
   beforeEach(() => {
-    trainTicketEstimator = new TrainTicketEstimatorOverloads();
+    apiPriceInformationsService.setResults(10);
+    trainTicketEstimator = new TrainTicketEstimator(apiPriceInformationsService);
   });
 
   // * Exeptions
@@ -99,27 +105,28 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(-1, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 0;
+    apiPriceInformationsService.setResults(10);
     await expect(
       async () => await trainTicketEstimator.estimate(request)
     ).rejects.toBeInstanceOf(InvalidTripInputException);
   });
 
-  // it("should return exception for price equal -1", async () => {
-  //   const passenger: Passenger = new Passenger(10, []);
-  //   const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
-  //   const request = new TripRequest(tripDetails, [passenger]);
-  //   trainTicketEstimator.result = -1;
-  //   await expect(
-  //     async () => await trainTicketEstimator.estimate(request)
-  //   ).rejects.toBeInstanceOf(ApiException);
-  // });
+  it("should return exception for price equal -1", async () => {
+    const passenger: Passenger = new Passenger(10, []);
+    const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
+    const request = new TripRequest(tripDetails, [passenger]);
+    const trainTicketEstimator2 = new TrainTicketEstimator();
+    apiPriceInformationsService.setResults(-1);
+    await expect(
+      async () => await trainTicketEstimator2.estimate(request)
+    ).rejects.toBeInstanceOf(ApiException);
+  });
 
   it("should return price for request", async () => {
     const passenger: Passenger = new Passenger(10, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", new Date());
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 0;
+    apiPriceInformationsService.setResults(0);
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -130,7 +137,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -139,7 +145,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -148,7 +153,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -157,7 +161,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -166,7 +169,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -176,7 +178,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(2, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -185,7 +186,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(2, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -194,7 +194,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(2, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -203,7 +202,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(2, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -212,7 +210,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(2, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -223,7 +220,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(4);
   });
@@ -232,7 +228,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(6);
   });
@@ -241,7 +236,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(6);
   });
@@ -250,7 +244,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(8.8);
   });
@@ -259,7 +252,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(16);
   });
@@ -270,7 +262,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date25Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(11);
   });
@@ -278,7 +269,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date5Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(22);
   });
@@ -286,7 +276,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10);
   });
@@ -294,7 +283,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(12);
   });
@@ -302,7 +290,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(12);
   });
@@ -311,7 +298,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(14.8);
   });
@@ -320,7 +306,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(22);
   });
@@ -331,7 +316,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(6);
   });
@@ -339,7 +323,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(8);
   });
@@ -347,7 +330,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(8);
   });
@@ -356,7 +338,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10.8);
   });
@@ -364,7 +345,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(18);
   });
@@ -374,7 +354,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(4);
   });
@@ -382,7 +361,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date20Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(6);
   });
@@ -390,7 +368,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date29Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(6);
   });
@@ -399,7 +376,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(8.8);
   });
@@ -407,7 +383,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(16);
   });
@@ -415,7 +390,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(18, [cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date4Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(22);
   });
@@ -423,7 +397,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(70, [cardTrainStroke]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(1);
   });
@@ -431,7 +404,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(0, [cardTrainStroke]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -439,7 +411,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(1, [cardTrainStroke]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(1);
   });
@@ -447,7 +418,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(17, [cardTrainStroke]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(1);
   });
@@ -455,7 +425,6 @@ describe("train estimator", function () {
     const passenger: Passenger = new Passenger(19, [cardTrainStroke]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(1);
   });
@@ -464,7 +433,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(19, [cardCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(16);
   });
@@ -473,7 +441,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(19, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(16);
   });
@@ -482,7 +449,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(17, [cardCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(8);
   });
@@ -491,7 +457,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(18, [cardCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(16);
   });
@@ -505,7 +470,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(30);
   });
@@ -513,7 +477,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(18, [cardCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10);
   });
@@ -523,7 +486,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(18, [cardHalfCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(20);
   });
@@ -531,7 +493,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(18, [cardHalfCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(9);
   });
@@ -539,7 +500,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(16, [cardHalfCouple]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(4);
   });
@@ -548,7 +508,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(70, [cardCouple, cardSenior]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(4);
   });
@@ -559,7 +518,6 @@ describe("train estimator", function () {
     ]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(3);
   });
@@ -570,7 +528,6 @@ describe("train estimator", function () {
     ]);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(0);
   });
@@ -579,7 +536,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(18, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date5Hours);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10);
   });
@@ -588,7 +544,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(18, []);
     const tripDetails = new TripDetails("Paris", "Bordeaux", date6Hours);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(10);
   });
@@ -599,7 +554,6 @@ describe("train estimator", function () {
     const passenger1: Passenger = new Passenger(18, [cardFamily], "Dubois"); //( 10 + 20% -20% - 30%) -> 8.4
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(7);
   });
@@ -609,7 +563,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(22, [], "Dubois");
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(14);
   });
@@ -619,7 +572,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(22, [cardFamily], "Dubois");
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(14);
   });
@@ -634,7 +586,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(15);
   });
@@ -649,7 +600,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(21);
   });
@@ -664,7 +614,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(17);
   });
@@ -679,7 +628,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(24);
   });
@@ -694,7 +642,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(26);
   });
@@ -709,7 +656,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(18);
   });
@@ -724,7 +670,6 @@ describe("train estimator", function () {
       passenger2,
       passenger3,
     ]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(21);
   });
@@ -737,7 +682,6 @@ describe("train estimator", function () {
     ); //( 10 + 20% -20% - 30%) -> 7 (la carte half couple ne compte pas)
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(7);
   });
@@ -751,7 +695,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(18, [], "Dubois"); //( 10 + 20% -20% - 30%) -> 7
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(14);
   });
@@ -765,7 +708,6 @@ describe("train estimator", function () {
     ); // => 1
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(1);
   });
@@ -778,7 +720,6 @@ describe("train estimator", function () {
     ); // ( 10 - 20% -20% - 30% ) => 3 (la carte senior ne compte pas)
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(3);
   });
@@ -788,7 +729,6 @@ describe("train estimator", function () {
     const passenger2: Passenger = new Passenger(20, [], ""); // ( 10 + 20% - 20% ) => 12
     const tripDetails = new TripDetails("Paris", "Bordeaux", date31Days);
     const request = new TripRequest(tripDetails, [passenger1, passenger2]);
-    trainTicketEstimator.result = 10;
     const result = await trainTicketEstimator.estimate(request);
     expect(result).toEqual(17);
   });

@@ -1,7 +1,4 @@
 export class DateUtils {
- 
-
-
   static getDateInFutur(days: number): Date {
     const date = new Date(
       this.getToday().setDate(this.getToday().getDate() + days)
@@ -9,7 +6,6 @@ export class DateUtils {
     return date;
   }
 
-    
   static getToday() {
     return new Date();
   }
@@ -30,7 +26,4 @@ export class DateUtils {
 
     return diffDays;
   }
-
- 
-  
 }

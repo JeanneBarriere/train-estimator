@@ -11,7 +11,10 @@ export class ApiPriceInformationsService
   async getPrice(trainDetails: TripRequest): Promise<number> {
     const response = await fetch(
       `https://sncf.com/api/train/estimate/price?from=${trainDetails.details.from}&to=${trainDetails.details.to}&date=${trainDetails.details.when}`
-    );
+    
+    ).catch(() => {
+      throw new ApiException();
+    });
     const json = await response.json();
     const price = json.price || -1;
     if (price === -1) {

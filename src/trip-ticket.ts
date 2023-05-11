@@ -1,12 +1,10 @@
 import { TripRequest } from "./model/trip.request";
 
 export class TripTicket {
-  
   adjustementsOfPrice: number[] = [];
   total = 0;
   passengersWithDiscount = 0;
   lastnames: string[] = [];
-  
 
   addTotal(total: number) {
     this.total += total;
